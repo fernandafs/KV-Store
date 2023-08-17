@@ -15,7 +15,8 @@ from Mensagem import Mensagem
 class Cliente:
     def __init__(self, servidors):
         self.servidores = servidors
-        self.timestamp = datetime.datetime.min
+        self.key = ''
+        self.timestamps = {self.key: datetime.datetime.min}
         self.put_ok_recebido = False
         self.get_ok_recebido = False
         self.requisicao_get = 0
@@ -32,12 +33,12 @@ class Cliente:
                 self.put_ok_recebido =  False
                 self.enviar_put()
                 while not self.put_ok_recebido: #Fornecer o menu novamente quando a mensagem de PUT_OK for exibida.
-                    i = 1
+                    pass
             elif opcao == '3':
                 self.get_ok_recebido = False #Fornecer o menu novamente quando a mensagem de GET ou TRY_SERVER for exibida.
                 self.enviar_get()
                 while not self.get_ok_recebido:
-                    i = 1
+                    pass
 
     '''
         Função responsável pela requisição de INIT. 
@@ -69,15 +70,15 @@ class Cliente:
                 mensagem_resposta = Mensagem.deserializar(data)
 
                 if mensagem_resposta.tipo == 'PUT_OK':
-                    self.timestamp = max(self.timestamp, mensagem_resposta.timestamp)
+                    self.timestamps[mensagem_resposta.key] = mensagem_resposta.timestamp
                     print("PUT_OK key: {} value: {} timestamp: {} realizada no servidor {}:{}".format(
                         mensagem_resposta.key, mensagem_resposta.value, mensagem_resposta.timestamp, ip, porta))
                     self.put_ok_recebido = True
                 elif mensagem_resposta.tipo == 'GET':
-                    self.timestamp = max(self.timestamp, mensagem_resposta.timestamp_servidor)
+                    self.timestamps[mensagem_resposta.key] = mensagem_resposta.timestamp_servidor
                     print("GET key: {} value: {} obtido do servidor {}:{}, meu timestamp {} e do servidor: {}".format(
                         mensagem_resposta.key, mensagem_resposta.value, ip, porta,
-                        self.timestamp, mensagem_resposta.timestamp_servidor ))
+                        self.timestamps[mensagem_resposta.key], mensagem_resposta.timestamp_servidor ))
                     self.get_ok_recebido = True
                 elif mensagem_resposta.tipo == 'TRY_OTHER_SERVER_OR_LATER':
                     print("TRY_OTHER_SERVER_OR_LATER: Tente outro servidor ou tente mais tarde")
@@ -94,6 +95,7 @@ class Cliente:
     '''
     def enviar_put(self):
         key = input("Digite a chave (key): ")
+        self.key = key
         value = input("Digite o valor (value): ")
 
         servidor = random.choice(self.servidores)
@@ -101,7 +103,7 @@ class Cliente:
             tipo='PUT',
             key=key,
             value=value,
-            timestamp_cliente=self.timestamp
+            timestamp_cliente=self.timestamps.get(self.key)
         )
         self.enviar_mensagem(servidor[0], servidor[1], mensagem)
 
@@ -114,16 +116,17 @@ class Cliente:
     def enviar_get(self):
         self.requisicao_get += 1
         key = input("Digite a chave (key): ")
+        self.key = key
         servidor = random.choice(self.servidores)
         mensagem = Mensagem(
             tipo='GET',
             key=key,
-            timestamp_cliente=self.timestamp
+            timestamp_cliente=self.timestamps.get(self.key)
         )
         if self.requisicao_get == 1:
-            self.enviar_mensagem('127.0.0.1', 1098, mensagem) # enviar mensagem ao líder
+            self.enviar_mensagem('127.0.0.1', 10098, mensagem) # enviar mensagem ao líder
         elif self.requisicao_get == 2:
-            self.enviar_mensagem('127.0.0.1', 1097, mensagem) # enviar mensagem não líder
+            self.enviar_mensagem('127.0.0.1', 10097, mensagem) # enviar mensagem não líder
         else:
             self.enviar_mensagem(servidor[0], servidor[1], mensagem)
 

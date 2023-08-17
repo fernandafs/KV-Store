@@ -168,6 +168,9 @@ class Servidor:
     '''
     def processar_get(self, mensagem):
         print("Cliente {}: GET key: {}".format((self.ip, self.porta), mensagem.key))
+        if mensagem.timestamp_cliente == None:
+            mensagem.timestamp_cliente = datetime.min
+
         if mensagem.key in self.tabela_hash:
             data = self.tabela_hash[mensagem.key]
             if data['timestamp'] >= mensagem.timestamp_cliente:
@@ -191,7 +194,7 @@ class Servidor:
                 key=mensagem.key,
                 value=None,
                 timestamp_cliente=mensagem.timestamp_cliente,
-                timestamp_servidor=None,
+                timestamp_servidor=datetime.min,
                 cliente_address=mensagem.cliente_address
             )
 
@@ -228,9 +231,9 @@ if __name__ == '__main__':
     leader_port = int(input("Digite a porta do líder: "))
 
     servidores = [
-        ('127.0.0.1', 1099),
-        ('127.0.0.1', 1098),
-        ('127.0.0.1', 1097)
+        ('127.0.0.1', 10099),
+        ('127.0.0.1', 10098),
+        ('127.0.0.1', 10097)
     ]
 
     servidor = Servidor(ip, porta, leader_ip, leader_port, servidores)
